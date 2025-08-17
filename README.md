@@ -1,95 +1,90 @@
 --[[
-Script Roblox Lua Local com interface (botão para ligar/desligar) que destaca todos os jogadores com highlight vermelho (tipo ESP).
-Coloque este LocalScript em StarterPlayerScripts para funcionar corretamente.
+# ESP Vermelho com Interface (Roblox Lua LocalScript)
+Este script cria um botão na tela que liga/desliga um ESP vermelho (Highlight) em todos os jogadores (exceto você).
+Ideal para uso em executores que aceitam scripts em formato .md.lua (markdown comentado) ou para documentação.
+Copie e cole em seu executor, preferencialmente em StarterPlayerScripts (ou execute via loadstring, se aceitar markdown).
 --]]
 
-local player = game.Players.LocalPlayer
-local gui = Instance.new("ScreenGui")
-gui.Name = "HighlightESPGui"
-gui.Parent = player:WaitForChild("PlayerGui")
+-- Serviços
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
--- Botão principal
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 220, 0, 50)
-button.Position = UDim2.new(0.5, -110, 0.9, 0)
-button.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-button.TextColor3 = Color3.new(1, 1, 1)
-button.Font = Enum.Font.SourceSansBold
-button.TextSize = 22
-button.Text = "LIGAR ESP VERMELHO"
-button.Parent = gui
+-- Interface
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "ESPvermelho"
+ScreenGui.Parent = (pcall(function() return game.CoreGui end) and game.CoreGui) or LocalPlayer:WaitForChild("PlayerGui")
 
-local espAtivo = false
+local Button = Instance.new("TextButton")
+Button.Size = UDim2.new(0, 220, 0, 50)
+Button.Position = UDim2.new(0.5, -110, 0.85, 0)
+Button.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+Button.TextColor3 = Color3.new(1, 1, 1)
+Button.Font = Enum.Font.SourceSansBold
+Button.TextSize = 22
+Button.Text = "LIGAR ESP VERMELHO"
+Button.Parent = ScreenGui
+
+local ESP_ON = false
 local highlights = {}
 
--- Função para adicionar highlight vermelho em todos os jogadores (menos você)
-local function ligarESP()
-    for _, plr in ipairs(game.Players:GetPlayers()) do
-        if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-            -- Remove highlights antigos se houver
-            local old = plr.Character:FindFirstChild("RedHighlightESP")
-            if old then old:Destroy() end
+local function addESP(plr)
+    if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+        local old = plr.Character:FindFirstChild("HighlightESP")
+        if old then old:Destroy() end
 
-            local highlight = Instance.new("Highlight")
-            highlight.Name = "RedHighlightESP"
-            highlight.FillColor = Color3.fromRGB(255,0,0)
-            highlight.OutlineColor = Color3.fromRGB(255,0,0)
-            highlight.FillTransparency = 0.5
-            highlight.OutlineTransparency = 0
-            highlight.Adornee = plr.Character
-            highlight.Parent = plr.Character
-            highlights[plr] = highlight
-        end
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "HighlightESP"
+        highlight.FillColor = Color3.fromRGB(255,0,0)
+        highlight.OutlineColor = Color3.fromRGB(255,0,0)
+        highlight.FillTransparency = 0.5
+        highlight.OutlineTransparency = 0
+        highlight.Adornee = plr.Character
+        highlight.Parent = plr.Character
+        highlights[plr] = highlight
     end
 end
 
--- Função para remover highlight de todos
-local function desligarESP()
+local function removeESP()
     for plr, highlight in pairs(highlights) do
         if highlight and highlight.Parent then
             highlight:Destroy()
         end
-        highlights[plr] = nil
     end
+    highlights = {}
 end
 
--- Atualiza highlights ao entrar/respawn de jogadores
-local function atualizarESP()
-    if espAtivo then
-        ligarESP()
-    end
-end
-
--- Eventos para novos jogadores e respawns
-game.Players.PlayerAdded:Connect(function(plr)
-    plr.CharacterAdded:Connect(function()
-        wait(1)
-        atualizarESP()
-    end)
-end)
-
-for _, plr in ipairs(game.Players:GetPlayers()) do
-    plr.CharacterAdded:Connect(function()
-        wait(1)
-        atualizarESP()
-    end)
-end
-
--- Clique do botão: liga/desliga ESP
-button.MouseButton1Click:Connect(function()
-    espAtivo = not espAtivo
-    if espAtivo then
-        button.Text = "DESLIGAR ESP VERMELHO"
-        button.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
-        ligarESP()
+local function updateESP()
+    if ESP_ON then
+        for _,plr in pairs(Players:GetPlayers()) do
+            addESP(plr)
+        end
     else
-        button.Text = "LIGAR ESP VERMELHO"
-        button.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-        desligarESP()
+        removeESP()
     end
+end
+
+Players.PlayerAdded:Connect(function(plr)
+    plr.CharacterAdded:Connect(function()
+        wait(1)
+        if ESP_ON then addESP(plr) end
+    end)
 end)
 
--- Limpeza ao sair
-player.OnRemoving:Connect(function()
-    gui:Destroy()
+for _, plr in ipairs(Players:GetPlayers()) do
+    plr.CharacterAdded:Connect(function()
+        wait(1)
+        if ESP_ON then addESP(plr) end
+    end)
+end
+
+Button.MouseButton1Click:Connect(function()
+    ESP_ON = not ESP_ON
+    if ESP_ON then
+        Button.Text = "DESLIGAR ESP VERMELHO"
+        Button.BackgroundColor3 = Color3.fromRGB(50,200,50)
+    else
+        Button.Text = "LIGAR ESP VERMELHO"
+        Button.BackgroundColor3 = Color3.fromRGB(200,50,50)
+    end
+    updateESP()
 end)
